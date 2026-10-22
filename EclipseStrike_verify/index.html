@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Eclipse Strike · Xác minh email</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Barlow:wght@400;600&display=swap">
+<style>
+  /* Mot the gioi duy nhat (giong menu game): nen toi, nhan teal. */
+  :root {
+    --ground: #020809;
+    --panel: #071416;
+    --line: #12302f;
+    --ink: #e8f4f2;
+    --muted: #8aa6a3;
+    --teal: #4fd6cb;
+    --teal-dim: rgba(79, 214, 203, 0.14);
+    --red: #eb4d45;
+    --red-dim: rgba(235, 77, 69, 0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--ground);
+    background-image: radial-gradient(ellipse 80% 55% at 50% 0%, #0b2324 0%, var(--ground) 70%);
+    color: var(--ink);
+    font-family: "Barlow", "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 16px;
+  }
+  .brand {
+    font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700;
+    letter-spacing: 0.14em; font-size: 15px; color: var(--ink);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 28px;
+  }
+  .brand::before { content: ""; width: 12px; height: 12px; background: var(--teal); }
+  .card {
+    width: 100%; max-width: 460px;
+    background: var(--panel); border: 1px solid var(--line);
+    padding: 40px 32px 32px; text-align: center;
+  }
+  /* "Nhat thuc": dia toi + quang teal (do khi loi). */
+  .eclipse {
+    width: 92px; height: 92px; margin: 0 auto 28px; border-radius: 50%;
+    background: var(--ground);
+    box-shadow: 0 0 0 2px var(--accent), 0 0 28px 6px var(--accent-dim);
+    display: grid; place-items: center;
+    animation: glow 2.8s ease-in-out infinite alternate;
+  }
+  .eclipse svg { width: 38px; height: 38px; stroke: var(--accent); fill: none; stroke-width: 3; stroke-linecap: square; }
+  @keyframes glow { from { box-shadow: 0 0 0 2px var(--accent), 0 0 18px 2px var(--accent-dim); } to { box-shadow: 0 0 0 2px var(--accent), 0 0 34px 10px var(--accent-dim); } }
+  @media (prefers-reduced-motion: reduce) { .eclipse { animation: none; } }
+  .state-ok   { --accent: var(--teal); --accent-dim: var(--teal-dim); }
+  .state-fail { --accent: var(--red);  --accent-dim: var(--red-dim); }
+  h1 {
+    font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700;
+    font-size: 24px; letter-spacing: 0.06em; margin: 0 0 12px; text-wrap: balance;
+    color: var(--accent);
+  }
+  p { margin: 0 auto; max-width: 34ch; line-height: 1.55; color: var(--muted); font-size: 16px; }
+  .steps {
+    list-style: none; margin: 28px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line);
+    text-align: left; display: grid; gap: 10px; font-size: 15px; color: var(--ink);
+  }
+  .steps li { display: flex; gap: 12px; align-items: baseline; }
+  .steps b {
+    font-family: "Chakra Petch", sans-serif; color: var(--accent); font-size: 13px;
+    min-width: 22px; letter-spacing: 0.04em;
+  }
+  .foot { margin-top: 22px; font-size: 13px; color: var(--muted); }
+  .lang {
+    margin-top: 18px; background: none; border: 1px solid var(--line); color: var(--muted);
+    font: 600 12px "Barlow", sans-serif; letter-spacing: 0.1em; padding: 6px 12px; cursor: pointer;
+  }
+  .lang:hover, .lang:focus-visible { color: var(--ink); border-color: var(--teal); outline: none; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="brand">ECLIPSE STRIKE</div>
+
+  <main class="card state-ok" id="card">
+    <div class="eclipse" aria-hidden="true">
+      <svg viewBox="0 0 40 40" id="icon-ok"><path d="M9 21 L17 29 L32 12"/></svg>
+      <svg viewBox="0 0 40 40" id="icon-fail" hidden><path d="M12 12 L28 28 M28 12 L12 28"/></svg>
+    </div>
+
+    <h1 id="title"></h1>
+    <p id="lead"></p>
+
+    <ol class="steps" id="steps"></ol>
+
+    <div class="foot" id="foot"></div>
+    <button class="lang" id="lang" type="button"></button>
+  </main>
+
+<script>
+  // PlayFab xac minh email roi chuyen huong ve trang nay (Callback URL trong Email Template).
+  // Mac dinh = thanh cong. Neu URL co dau hieu loi (?error=..., ?success=false, ?status=fail...) -> hien man loi.
+  var T = {
+    vi: {
+      okTitle: "EMAIL ĐÃ ĐƯỢC XÁC MINH",
+      okLead: "Tài khoản của bạn đã sẵn sàng. Bạn có thể quay lại game và đăng nhập.",
+      okSteps: ["Mở lại Eclipse Strike.", "Đăng nhập bằng tên hoặc email và mật khẩu.", "Vào trận!"],
+      failTitle: "LINK KHÔNG HỢP LỆ",
+      failLead: "Link xác minh đã hết hạn hoặc đã được dùng. Đừng lo, lấy link mới rất nhanh.",
+      failSteps: ["Mở Eclipse Strike và đăng nhập.", "Game sẽ tự gửi lại email xác minh.", "Mở email mới nhất (xem cả mục Spam) và bấm vào link."],
+      foot: "Bạn có thể đóng trang này.",
+      lang: "ENGLISH"
+    },
+    en: {
+      okTitle: "EMAIL VERIFIED",
+      okLead: "Your account is ready. Head back to the game and log in.",
+      okSteps: ["Open Eclipse Strike again.", "Log in with your username or email and password.", "Jump into a match!"],
+      failTitle: "INVALID LINK",
+      failLead: "This verification link has expired or was already used. Getting a new one is quick.",
+      failSteps: ["Open Eclipse Strike and log in.", "The game sends you a new verification email.", "Open the newest email (check Spam too) and click the link."],
+      foot: "You can close this page.",
+      lang: "TIẾNG VIỆT"
+    }
+  };
+
+  var q = new URLSearchParams(window.location.search);
+  var bad = /^(false|0|fail|failed|error|invalid|expired)$/i;
+  var failed = q.has("error") || q.has("error_description") ||
+               bad.test(q.get("success") || "") || bad.test(q.get("status") || "") || bad.test(q.get("result") || "");
+
+  var lang = (q.get("lang") || "").toLowerCase() === "en" ? "en" : "vi"; // mac dinh tieng Viet, ?lang=en -> English
+
+  function render() {
+    var t = T[lang];
+    document.documentElement.lang = lang;
+    document.getElementById("card").className = "card " + (failed ? "state-fail" : "state-ok");
+    // SVG khong co thuoc tinh .hidden -> dung attribute
+    document.getElementById("icon-ok").toggleAttribute("hidden", failed);
+    document.getElementById("icon-fail").toggleAttribute("hidden", !failed);
+    document.getElementById("title").textContent = failed ? t.failTitle : t.okTitle;
+    document.getElementById("lead").textContent = failed ? t.failLead : t.okLead;
+    var ol = document.getElementById("steps"); ol.innerHTML = "";
+    (failed ? t.failSteps : t.okSteps).forEach(function (s, i) {
+      var li = document.createElement("li");
+      var b = document.createElement("b"); b.textContent = "0" + (i + 1);
+      var span = document.createElement("span"); span.textContent = s;
+      li.appendChild(b); li.appendChild(span); ol.appendChild(li);
+    });
+    document.getElementById("foot").textContent = t.foot;
+    document.getElementById("lang").textContent = t.lang;
+    document.title = "Eclipse Strike · " + (failed ? t.failTitle : t.okTitle);
+  }
+  document.getElementById("lang").addEventListener("click", function () { lang = lang === "vi" ? "en" : "vi"; render(); });
+  render();
+</script>
+</body>
+</html>
