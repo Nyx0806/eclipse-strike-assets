@@ -1,1 +1,0 @@
-# eclipse-strike-assets
